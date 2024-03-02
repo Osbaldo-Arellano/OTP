@@ -87,24 +87,41 @@ void handlder(int cfd) {
     printf("\n");
 
     int cypherIndex = 0;
-    printf("%d", plainTextIndex);
-    for(int i = 0; i < plainTextIndex; i++){
-        char mssgPlusKey = plainText[i] + key[i];
+    for(int i = 0; i < plainTextIndex; i++) {
+        int plainTextChar;
+        // Map 'A'-'Z' to 0-25, and space to 26
+        if (plainText[i] == ' ') {
+            plainTextChar = 26;
+        } else {
+            plainTextChar = plainText[i] - 'A';
+        }
 
-        if (mssgPlusKey > '[') {
-            mssgPlusKey -= 26; // Wrap around to the beginning the capital ASCII letters
+        int keyChar;
+        if (key[i] == ' ') {
+            keyChar = 26;
+        } else {
+            keyChar = key[i] - 'A';
+        }
+
+        int cypherVal = (plainTextChar + keyChar) % 27; // Use modulo 27 for A-Z and space
+
+        // Map back to ASCII characters, 26 back to space
+        char cypherChar;
+        if (cypherVal == 26) {
+            cypherChar = ' ';
+        } else {
+            cypherChar = 'A' + cypherVal;
         }
 
         printf("plain text char: %c\n", plainText[i]);
         printf("key text char: %c\n", key[i]);
-        printf("message plus: %c\n", mssgPlusKey);
+        printf("cypher char: %c\n", cypherChar);
 
-        char cypherChar = mssgPlusKey % 27;
-        printf("cypher: %c", mssgPlusKey);
-
-        cypherText[i] = cypherChar;
+        cypherText[cypherIndex] = cypherChar;
         cypherIndex++;
     }
+    cypherText[cypherIndex] = '\0'; // Null-terminate the cypherText string
+
 
     // Print the cypher array
     printf("cypher: ");
