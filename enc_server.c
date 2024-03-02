@@ -22,6 +22,7 @@ void handlder(int cfd) {
     // Keep buffers to store characters
     char plainText[BUF_SIZE];
     char key[BUF_SIZE];
+    char cypherText[BUF_SIZE];
     int plainTextIndex = 0;
     int keyIndex = 0;
     int isPlainText = 1; // Switches once '@' is encountered
@@ -79,6 +80,36 @@ void handlder(int cfd) {
     printf("Key: ");
     for (int i = 0; i < keyIndex; i++) {
         printf("%c", key[i]);
+        if(key[i] == '\n'){
+            printf("HERE");
+        }
+    }
+    printf("\n");
+
+    int cypherIndex = 0;
+    printf("%d", plainTextIndex);
+    for(int i = 0; i < plainTextIndex; i++){
+        char mssgPlusKey = plainText[i] + key[i];
+
+        if (mssgPlusKey > '[') {
+            mssgPlusKey -= 26; // Wrap around to the beginning the capital ASCII letters
+        }
+
+        printf("plain text char: %c\n", plainText[i]);
+        printf("key text char: %c\n", key[i]);
+        printf("message plus: %c\n", mssgPlusKey);
+
+        char cypherChar = mssgPlusKey % 27;
+        printf("cypher: %c", mssgPlusKey);
+
+        cypherText[i] = cypherChar;
+        cypherIndex++;
+    }
+
+    // Print the cypher array
+    printf("cypher: ");
+    for (int i = 0; i < cypherIndex; i++) {
+        printf("%c", cypherText[i]);
         if(key[i] == '\n'){
             printf("HERE");
         }
