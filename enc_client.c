@@ -139,8 +139,8 @@ int main(int argc, char *argv[]) {
     memset(buf, 0, sizeof buf);
     ssize_t numbytes = recv(sockfd, buf, sizeof buf, 0);
     if (numbytes == -1) {
-        perror("recv"); 
-        exit(1);
+        fprintf(stderr, "Error: could not contact enc_server on port %s\n", argv[3]); 
+        exit(2);
     }
 
     int nread = read(sockfd, buf, BUF_SIZE);   

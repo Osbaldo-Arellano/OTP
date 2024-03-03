@@ -57,9 +57,8 @@ void handler(int cfd) {
 
     // First thing in stream is always the secret string
     if (strcmp(buf, SECRET) != 0) {
-        fprintf(stderr, "Connection not validated\n");
         close(cfd);
-        return;
+        exit(2);
     }
 
     // Handle rest of the incoming data
@@ -86,23 +85,22 @@ void handler(int cfd) {
     }
 
     // Print the plain text array
-    printf("Plain Text: ");
-    for (int i = 0; i < plainTextIndex; i++) {
-        printf("%c", plainText[i]);
-    }
-    printf("\n");
+    // printf("Plain Text: ");
+    // for (int i = 0; i < plainTextIndex; i++) {
+    //     printf("%c", plainText[i]);
+    // }
+    // printf("\n");
 
-    // Print the key array
-    printf("Key: ");
-    for (int i = 0; i < keyIndex; i++) {
-        printf("%c", key[i]);
-    }
-    printf("\n");
+    // // Print the key array
+    // printf("Key: ");
+    // for (int i = 0; i < keyIndex; i++) {
+    //     printf("%c", key[i]);
+    // }
+    // printf("\n");
 
     // Do the encoding one char at a time 
-    for(int i = 0; i < plainTextIndex; i++) {
+   for (int i = 0; i < plainTextIndex; i++) {
         int plainTextChar;
-        // Map 'A'-'Z' to 0-25 and space to 26
         if (plainText[i] == ' ') {
             plainTextChar = 26;
         } else {
@@ -116,10 +114,9 @@ void handler(int cfd) {
             keyChar = key[i] - 'A';
         }
 
-        // (Message + Key) mod 27 
-        int cypherVal = (plainTextChar - keyChar) % 27; 
+        // Correctly handle negative values and ensure result is within 0-26
+        int cypherVal = (plainTextChar - keyChar + 27) % 27;
 
-        // Map back to ASCII characters, 26 back to space
         char cypherChar;
         if (cypherVal == 26) {
             cypherChar = ' ';
@@ -127,33 +124,24 @@ void handler(int cfd) {
             cypherChar = 'A' + cypherVal;
         }
 
-        printf("plain text char: %c\n", plainText[i]);
-        printf("key text char: %c\n", key[i]);
-        printf("cypher char: %c\n", cypherChar);
+        // printf("plain text char: %c\n", plainText[i]);
+        // printf("key text char: %c\n", key[i]);
+        // printf("cypher char: %c\n", cypherChar);
 
-        cypherText[cypherIndex] = cypherChar;
-        cypherIndex++;
+        cypherText[cypherIndex++] = cypherChar;
     }
-    cypherText[cypherIndex] = '\0'; // Null-terminate the cypherText string
 
+    cypherText[cypherIndex] = '\n'; // Null-terminate the cypherText string
 
-    // Print the cypher array
-    printf("cyphe!r: ");
-    for (int i = 0; i < cypherIndex; i++) {
-        printf("%c", cypherText[i]);
-        if(key[i] == '\n'){
-            printf("HERE");
-        }
-    }
-    printf("\n");
-
-
-
-
-
-        
-
-
+    // // Print the cypher array
+    // printf("cyphe!r: ");
+    // for (int i = 0; i < cypherIndex; i++) {
+    //     printf("%c", cypherText[i]);
+    //     if(key[i] == '\n'){
+    //         printf("HERE");
+    //     }
+    // }
+    // printf("\n");
 
     int charsRead = send(cfd, 
                     cypherText, cypherIndex, 0); 
@@ -162,23 +150,6 @@ void handler(int cfd) {
     }
     // Close the connection socket for this client
     close(cfd); 
-                 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     if (nread < 0) {
         perror("read");
@@ -186,7 +157,6 @@ void handler(int cfd) {
 
     close(cfd);  // Close the client connection
 }
-
 
 int main(int argc, char *argv[]) {
 

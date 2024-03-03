@@ -11,7 +11,7 @@
 int validate(const char *filename) {
     FILE *file = fopen(filename, "r");
     if (!file) {
-        fprintf(stderr, "Could not open file: %s\n", filename);
+        fprintf(stderr, "HERE!! Could not open file: %s\n", filename);
         return -1;
     }
 
@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
     }
 
     ssize_t plainTextCheck = sendAll(sockfd, plaintext, pt_length);
-    ssize_t delimCheck = sendAll(sockfd, "@", 1);
+    ssize_t delimCheck = sendAll(sockfd, "@", 1); // seperate the stream with '@'
     ssize_t keyTextCheck = sendAll(sockfd, key, pt_length);
     ssize_t delimCheck2 = sendAll(sockfd, "@", 1);
 
@@ -139,8 +139,8 @@ int main(int argc, char *argv[]) {
     memset(buf, 0, sizeof buf);
     ssize_t numbytes = recv(sockfd, buf, sizeof buf, 0);
     if (numbytes == -1) {
-        perror("recv"); 
-        exit(1);
+        fprintf(stderr, "Error: could not contact enc_server on port %s\n", argv[3]); 
+        exit(2);
     }
 
     int nread = read(sockfd, buf, BUF_SIZE);   
@@ -150,6 +150,7 @@ int main(int argc, char *argv[]) {
     }
 
     fwrite(buf, 1, numbytes, stdout);
+    fputc('\n', stdout); // Add newline to the stream since the file its being comapred to contains a newline
 
     close(sockfd);
     free(plaintext);

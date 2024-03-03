@@ -57,9 +57,8 @@ void handler(int cfd) {
 
     // First thing in stream is always the secret string
     if (strcmp(buf, SECRET) != 0) {
-        fprintf(stderr, "Connection not validated\n");
         close(cfd);
-        return;
+        exit(2);
     }
 
     // Handle rest of the incoming data
@@ -85,19 +84,19 @@ void handler(int cfd) {
         }
     }
 
-    // Print the plain text array
-    printf("Plain Text: ");
-    for (int i = 0; i < plainTextIndex; i++) {
-        printf("%c", plainText[i]);
-    }
-    printf("\n");
+    // // Print the plain text array
+    // printf("Plain Text: ");
+    // for (int i = 0; i < plainTextIndex; i++) {
+    //     printf("%c", plainText[i]);
+    // }
+    // printf("\n");
 
-    // Print the key array
-    printf("Key: ");
-    for (int i = 0; i < keyIndex; i++) {
-        printf("%c", key[i]);
-    }
-    printf("\n");
+    // // Print the key array
+    // printf("Key: ");
+    // for (int i = 0; i < keyIndex; i++) {
+    //     printf("%c", key[i]);
+    // }
+    // printf("\n");
 
     // Do the encoding one char at a time 
     for(int i = 0; i < plainTextIndex; i++) {
@@ -127,58 +126,33 @@ void handler(int cfd) {
             cypherChar = 'A' + cypherVal;
         }
 
-        printf("plain text char: %c\n", plainText[i]);
-        printf("key text char: %c\n", key[i]);
-        printf("cypher char: %c\n", cypherChar);
+        // printf("plain text char: %c\n", plainText[i]);
+        // printf("key text char: %c\n", key[i]);
+        // printf("cypher char: %c\n", cypherChar);
 
         cypherText[cypherIndex] = cypherChar;
         cypherIndex++;
     }
     cypherText[cypherIndex] = '\0'; // Null-terminate the cypherText string
 
-
-    // Print the cypher array
-    printf("cyphe!r: ");
-    for (int i = 0; i < cypherIndex; i++) {
-        printf("%c", cypherText[i]);
-        if(key[i] == '\n'){
-            printf("HERE");
-        }
-    }
-    printf("\n");
-
-
-
-
-
-        
-
-
+    // // Print the cypher array
+    // printf("cyphe!r: ");
+    // for (int i = 0; i < cypherIndex; i++) {
+    //     printf("%c", cypherText[i]);
+    //     if(key[i] == '\n'){
+    //         printf("HERE");
+    //     }
+    // }
+    // printf("\n");
 
     int charsRead = send(cfd, 
                     cypherText, cypherIndex, 0); 
     if (charsRead < 0){
       perror("ERROR writing to socket");
     }
+    
     // Close the connection socket for this client
     close(cfd); 
-                 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     if (nread < 0) {
         perror("read");
