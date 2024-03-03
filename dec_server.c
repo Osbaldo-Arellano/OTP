@@ -12,8 +12,8 @@ SOURCE: https://linux.die.net/man/3/getaddrinfo
 #include <netdb.h>
 #include <signal.h>
 
-#define BUF_SIZE 50000
-#define SECRET "enc_client"
+#define BUF_SIZE 5000
+#define SECRET "dec_client"
 
 struct addrinfo hints, *result, *rp;
 int sfd, s; // Server file descriptor
@@ -117,7 +117,7 @@ void handler(int cfd) {
         }
 
         // (Message + Key) mod 27 
-        int cypherVal = (plainTextChar + keyChar) % 27; 
+        int cypherVal = (plainTextChar - keyChar) % 27; 
 
         // Map back to ASCII characters, 26 back to space
         char cypherChar;

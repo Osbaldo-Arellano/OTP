@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#define BUF_SIZE 500
+#define BUF_SIZE 5000
 
 int validate(const char *filename) {
     FILE *file = fopen(filename, "r");
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     freeaddrinfo(servinfo);
 
     // Send validation string to server
-    char *valdidationString = "enc_client";
+    char *valdidationString = "dec_client";
     if (sendAll(sockfd, valdidationString, strlen(valdidationString)) == -1) {
         perror("send magic string");
         close(sockfd);
