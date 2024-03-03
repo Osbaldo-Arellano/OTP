@@ -12,10 +12,29 @@ SOURCE: https://linux.die.net/man/3/getaddrinfo
 #include <netdb.h>
 #include <signal.h>
 
-#define BUF_SIZE 500
+#define BUF_SIZE 5000
 #define SECRET "enc_client"
 
-void handlder(int cfd) {
+struct addrinfo hints, *result, *rp;
+int sfd, s; // Server file descriptor
+struct sockaddr_storage peer_addr;
+socklen_t peer_addr_len;
+int cfd; // Client file descriptor
+
+ssize_t sendAll(int sockfd, const char *data, size_t length) {
+    size_t total_sent = 0;
+    while (total_sent < length) {
+        ssize_t sent = send(sockfd, data + total_sent, length - total_sent, 0);
+        if (sent == -1){
+            return -1;
+        } 
+        total_sent += sent;
+    }
+    return total_sent;
+}
+
+
+void handler(int cfd) {
     char buf[BUF_SIZE];
     ssize_t nread, nwritten, to_write;
     
@@ -25,6 +44,8 @@ void handlder(int cfd) {
     char cypherText[BUF_SIZE];
     int plainTextIndex = 0;
     int keyIndex = 0;
+    int cypherIndex = 0;
+
     int isPlainText = 1; // Switches once '@' is encountered
     
     nread = read(cfd, buf, strlen(SECRET));
@@ -68,11 +89,6 @@ void handlder(int cfd) {
     printf("Plain Text: ");
     for (int i = 0; i < plainTextIndex; i++) {
         printf("%c", plainText[i]);
-
-        // Hopefully wont ever print
-        if(key[i] == '\n'){
-            printf("HERE");
-        }
     }
     printf("\n");
 
@@ -80,16 +96,13 @@ void handlder(int cfd) {
     printf("Key: ");
     for (int i = 0; i < keyIndex; i++) {
         printf("%c", key[i]);
-        if(key[i] == '\n'){
-            printf("HERE");
-        }
     }
     printf("\n");
 
-    int cypherIndex = 0;
+    // Do the encoding one char at a time 
     for(int i = 0; i < plainTextIndex; i++) {
         int plainTextChar;
-        // Map 'A'-'Z' to 0-25, and space to 26
+        // Map 'A'-'Z' to 0-25 and space to 26
         if (plainText[i] == ' ') {
             plainTextChar = 26;
         } else {
@@ -103,7 +116,8 @@ void handlder(int cfd) {
             keyChar = key[i] - 'A';
         }
 
-        int cypherVal = (plainTextChar + keyChar) % 27; // Use modulo 27 for A-Z and space
+        // (Message + Key) mod 27 
+        int cypherVal = (plainTextChar + keyChar) % 27; 
 
         // Map back to ASCII characters, 26 back to space
         char cypherChar;
@@ -124,7 +138,7 @@ void handlder(int cfd) {
 
 
     // Print the cypher array
-    printf("cypher: ");
+    printf("cyphe!r: ");
     for (int i = 0; i < cypherIndex; i++) {
         printf("%c", cypherText[i]);
         if(key[i] == '\n'){
@@ -132,6 +146,38 @@ void handlder(int cfd) {
         }
     }
     printf("\n");
+
+
+
+
+
+        
+
+
+
+    int charsRead = send(cfd, 
+                    cypherText, cypherIndex, 0); 
+    if (charsRead < 0){
+      perror("ERROR writing to socket");
+    }
+    // Close the connection socket for this client
+    close(cfd); 
+                 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     if (nread < 0) {
@@ -143,11 +189,6 @@ void handlder(int cfd) {
 
 
 int main(int argc, char *argv[]) {
-    struct addrinfo hints, *result, *rp;
-    int sfd, s; // Server file descriptor
-    struct sockaddr_storage peer_addr;
-    socklen_t peer_addr_len;
-    int cfd; // Client file descriptor
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s port\n", argv[0]);
@@ -198,7 +239,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (fork() == 0) { // Child process
-            handlder(cfd);
+            handler(cfd);
             exit(0);
         } else { // Parent process
             close(cfd); 

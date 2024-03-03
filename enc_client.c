@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
     long pt_length = readFile(argv[1], NULL);
     long key_length = readFile(argv[2], NULL);
     if (pt_length > key_length || pt_length == -1 || key_length == -1) {
-        fprintf(stderr, "Error: Key is shorter than plaintext or files could not be read.\n");
+        fprintf(stderr, "Error: key ‘myshortkey’ is too short\n");
         exit(1);
     }
 
@@ -139,8 +139,14 @@ int main(int argc, char *argv[]) {
     memset(buf, 0, sizeof buf);
     ssize_t numbytes = recv(sockfd, buf, sizeof buf, 0);
     if (numbytes == -1) {
-        perror("recv");
+        perror("recv"); 
         exit(1);
+    }
+
+    int nread = read(sockfd, buf, BUF_SIZE);   
+    if (nread == -1) {
+        perror("read");
+        exit(EXIT_FAILURE);
     }
 
     fwrite(buf, 1, numbytes, stdout);
