@@ -12,7 +12,7 @@ SOURCE: https://linux.die.net/man/3/getaddrinfo
 #include <netdb.h>
 #include <signal.h>
 
-#define BUF_SIZE 50000
+#define BUF_SIZE 5000000
 #define SECRET "enc_client"
 
 struct addrinfo hints, *result, *rp;
@@ -33,132 +33,118 @@ ssize_t sendAll(int sockfd, const char *data, size_t length) {
     return total_sent;
 }
 
-
-void handler(int cfd) {
-    char buf[BUF_SIZE];
-    ssize_t nread, nwritten, to_write;
-    
-    // Keep buffers to store characters
-    char plainText[BUF_SIZE];
-    char key[BUF_SIZE];
-    char cypherText[BUF_SIZE];
-    int plainTextIndex = 0;
-    int keyIndex = 0;
-    int cypherIndex = 0;
-
-    int isPlainText = 1; // Switches once '@' is encountered
-    
-    nread = read(cfd, buf, strlen(SECRET));
-    if (nread < 0) {
-        perror("read secret string");
-        close(cfd);
+void performOneTimePadEncryption(int cfd, const char* plaintext, const char* key, size_t plaintextLen) {
+    if (!plaintext || !key) {
+        perror("Plaintext or key is NULL");
         return;
     }
 
-    // First thing in stream is always the secret string
-    if (strcmp(buf, SECRET) != 0) {
-        close(cfd);
-        exit(2);
+    char *cypherText = malloc(plaintextLen); // Handling binary data, no +1 for null terminator
+
+    if (!cypherText) {
+        perror("Failed to allocate memory for cypherText");
+        return;
     }
 
-    // Handle rest of the incoming data
-    while ((nread = read(cfd, buf, BUF_SIZE)) > 0) {
-        for (int i = 0; i < nread; i++) {
-            if (buf[i] == '@') {
-                // Incoming data in stream is now a Key 
-                isPlainText = 0;
-                continue;
-            }
+    for (size_t i = 0; i < plaintextLen; i++) {
+        int plaintextChar, keyChar;
 
-            // Trimming newline char for encoding
-            if(buf[i] == '\n'){
-                continue;
-            }
-
-            // Store the char in the appropriate array
-            if (isPlainText) {
-                plainText[plainTextIndex++] = buf[i];
-            } else {              
-                key[keyIndex++] = buf[i];
-            }
-        }
-    }
-
-    // // Print the plain text array
-    // printf("Plain Text: ");
-    // for (int i = 0; i < plainTextIndex; i++) {
-    //     printf("%c", plainText[i]);
-    // }
-    // printf("\n");
-
-    // // Print the key array
-    // printf("Key: ");
-    // for (int i = 0; i < keyIndex; i++) {
-    //     printf("%c", key[i]);
-    // }
-    // printf("\n");
-
-    // Do the encoding one char at a time 
-    for(int i = 0; i < plainTextIndex; i++) {
-        int plainTextChar;
-        // Map 'A'-'Z' to 0-25 and space to 26
-        if (plainText[i] == ' ') {
-            plainTextChar = 26;
+        // Convert plaintext characters to numerical values
+        if (plaintext[i] == ' ') {
+            plaintextChar = 26;
         } else {
-            plainTextChar = plainText[i] - 'A';
+            plaintextChar = plaintext[i] - 'A';
         }
-
-        int keyChar;
+        // Convert key characters to numerical values
         if (key[i] == ' ') {
             keyChar = 26;
         } else {
             keyChar = key[i] - 'A';
         }
 
-        // (Message + Key) mod 27 
-        int cypherVal = (plainTextChar + keyChar) % 27; 
-
-        // Map back to ASCII characters, 26 back to space
-        char cypherChar;
+        // Encryption formula
+        int cypherVal = (plaintextChar + keyChar) % 27;
         if (cypherVal == 26) {
-            cypherChar = ' ';
+            cypherText[i] = ' ';
         } else {
-            cypherChar = 'A' + cypherVal;
+            cypherText[i] = 'A' + cypherVal;
         }
+    }   
 
-        // printf("plain text char: %c\n", plainText[i]);
-        // printf("key text char: %c\n", key[i]);
-        // printf("cypher char: %c\n", cypherChar);
-
-        cypherText[cypherIndex] = cypherChar;
-        cypherIndex++;
+    // Send the cypherText back to the client
+    ssize_t sentBytes = send(cfd, cypherText, plaintextLen, 0);
+    if (sentBytes == -1) {
+        perror("send");
+    } else {
+        printf("Sent %zd bytes\n", sentBytes);
     }
-    cypherText[cypherIndex] = '\0'; // Null-terminate the cypherText string
 
-    // // Print the cypher array
-    // printf("cyphe!r: ");
-    // for (int i = 0; i < cypherIndex; i++) {
-    //     printf("%c", cypherText[i]);
-    //     if(key[i] == '\n'){
-    //         printf("HERE");
-    //     }
-    // }
-    // printf("\n");
+    free(cypherText);
+}
 
-    int charsRead = send(cfd, 
-                    cypherText, cypherIndex, 0); 
-    if (charsRead < 0){
-      perror("ERROR writing to socket");
+void handler(int cfd) {
+    char buf[BUF_SIZE];
+    ssize_t nread;
+
+    char *receivedData = malloc(BUF_SIZE);
+    if (!receivedData) {
+        perror("Failed to allocate memory");
+        close(cfd);
+        return;
     }
-    
-    // Close the connection socket for this client
-    close(cfd); 
+
+    size_t receivedLen = 0;
+    while ((nread = recv(cfd, buf, BUF_SIZE, 0)) > 0) {
+        if (receivedLen + nread > BUF_SIZE) {
+            fprintf(stderr, "Error: Buffer overflow detected.\n");
+            free(receivedData);
+            close(cfd);
+            return;
+        }
+        memcpy(receivedData + receivedLen, buf, nread);
+        receivedLen += nread;
+    }
 
     if (nread < 0) {
-        perror("read");
+        perror("Failed to receive data");
+        free(receivedData);
+        close(cfd);
+        return;
     }
 
-    close(cfd);  // Close the client connection
+    if (strncmp(receivedData, SECRET, strlen(SECRET)) != 0) {
+        fprintf(stderr, "Secret string mismatch\n");
+        free(receivedData);
+        close(cfd);
+        return;
+    }
+
+    char *plaintextStart = receivedData + strlen(SECRET) + 1;
+    char *keyStart = strchr(plaintextStart, '@') + 1;
+    if (!keyStart) {
+        fprintf(stderr, "Malformed message: Key not found\n");
+        free(receivedData);
+        close(cfd);
+        return;
+    }
+
+    *strchr(plaintextStart, '@') = '\0'; // Null-terminate the plaintext
+    char *end = strchr(keyStart, '@');
+    if (!end) {
+        fprintf(stderr, "Malformed message: End of key not found\n");
+        free(receivedData);
+        close(cfd);
+        return;
+    }
+    *end = '\0'; // Null-terminate the key
+
+    // Call the one-time pad encryption function
+    size_t plainTextLen = strlen(plaintextStart) - 1;
+    performOneTimePadEncryption(cfd, plaintextStart, keyStart, plainTextLen);
+
+    // Clean up and close the client socket
+    free(receivedData);
+    close(cfd);
 }
 
 

@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#define BUF_SIZE 5000
+#define BUF_SIZE 500000
 
 int validate(const char *filename) {
     FILE *file = fopen(filename, "r");
@@ -118,11 +118,11 @@ int main(int argc, char *argv[]) {
     // Send validation string to server
     char *valdidationString = "dec_client";
     if (sendAll(sockfd, valdidationString, strlen(valdidationString)) == -1) {
-        perror("send magic string");
+        perror("send secret string");
         close(sockfd);
         exit(2);
     }
-
+    ssize_t delimCheck1 = sendAll(sockfd, "@", 1); // seperate the stream with '@'
     ssize_t plainTextCheck = sendAll(sockfd, plaintext, pt_length);
     ssize_t delimCheck = sendAll(sockfd, "@", 1); // seperate the stream with '@'
     ssize_t keyTextCheck = sendAll(sockfd, key, pt_length);

@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#define BUF_SIZE 500
+#define BUF_SIZE 5000000
 
 int validate(const char *filename) {
     FILE *file = fopen(filename, "r");
@@ -123,6 +123,7 @@ int main(int argc, char *argv[]) {
         exit(2);
     }
 
+    ssize_t delimCheck3 = sendAll(sockfd, "@", 1);
     ssize_t plainTextCheck = sendAll(sockfd, plaintext, pt_length);
     ssize_t delimCheck = sendAll(sockfd, "@", 1);
     ssize_t keyTextCheck = sendAll(sockfd, key, pt_length);
@@ -150,6 +151,8 @@ int main(int argc, char *argv[]) {
     }
 
     fwrite(buf, 1, numbytes, stdout);
+    fputc('\n', stdout); // Add newline to the stream since the file its being comapred to contains a newline
+
 
     close(sockfd);
     free(plaintext);
